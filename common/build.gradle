@@ -11,10 +11,11 @@ dependencies {
 	compileOnly "com.github.glitchfiend:TerraBlender-forge:${rootProject.minecraft_version}-${rootProject.terrablender_version}"
 	compileOnly "com.electronwill.night-config:toml:3.6.7"
 	//compileOnly "lithostitched-forge:1.0.0"
+    implementation name: "TerraFirmaCraft-Forge-1.20.1-0.0.0-indev"
 }
 
 repositories {
-
+    flatDir { dirs 'D:/sandbox/TerraFirmaCraft/build/libs' }
 }
 
 remapJar {

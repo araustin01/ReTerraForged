@@ -40,6 +40,7 @@ configurations {
 repositories {
 	maven { url = 'https://maven.minecraftforge.net/' }
 	mavenCentral()
+    flatDir { dirs 'D:/sandbox/TerraFirmaCraft/build/libs' }
 }
 
 dependencies {
@@ -50,6 +51,8 @@ dependencies {
     
     common(project(path: ":common", configuration: "namedElements")) { transitive false }
     shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive false }
+
+    implementation name: "TerraFirmaCraft-Forge-1.20.1-0.0.0-indev"
 }
 
 sourceSets {
