@@ -11,6 +11,10 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.worldgen.BootstapContext;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+import org.apache.logging.log4j.Level;
+import raccoonman.reterraforged.RTFCommon;
 import raccoonman.reterraforged.data.worldgen.compat.terrablender.TBNoiseRouterData;
 import raccoonman.reterraforged.data.worldgen.preset.PresetBiomeData;
 import raccoonman.reterraforged.data.worldgen.preset.PresetBiomeModifierData;
@@ -24,7 +28,14 @@ import raccoonman.reterraforged.data.worldgen.preset.PresetPlacedFeatures;
 import raccoonman.reterraforged.data.worldgen.preset.PresetStructureRuleData;
 import raccoonman.reterraforged.registries.RTFRegistries;
 
+import javax.sound.midi.Patch;
+import java.util.function.BiConsumer;
+
+
 public record Preset(WorldSettings world, SurfaceSettings surface, CaveSettings caves, ClimateSettings climate, TerrainSettings terrain, RiverSettings rivers, FilterSettings filters, StructureSettings structures, MiscellaneousSettings miscellaneous) {
+	public static BiConsumer<Preset, BootstapContext<?>> CUSTOM_CHUNK_GENERATOR;
+	public static ResourceKey CHUNK_GENERATOR_KEY;
+
 	public static final Codec<Preset> DIRECT_CODEC = RecordCodecBuilder.create(instance -> instance.group(
 		WorldSettings.CODEC.fieldOf("world").forGetter(Preset::world),
 		SurfaceSettings.CODEC.optionalFieldOf("surface", new SurfaceSettings(new SurfaceSettings.Erosion(30, 140, 40, 95, 0.65F, 0.475F, 0.4F))).forGetter(Preset::surface),
@@ -45,6 +56,7 @@ public record Preset(WorldSettings world, SurfaceSettings surface, CaveSettings 
 	}
 
 	public HolderLookup.Provider buildPatch(RegistryAccess registries) {
+		RTFCommon.LOGGER.info("Building patch...");
 		RegistrySetBuilder builder = new RegistrySetBuilder();
 		this.addPatch(builder, RTFRegistries.PRESET, (preset, ctx) -> ctx.register(KEY, preset));
 		this.addPatch(builder, RTFRegistries.NOISE, PresetNoiseData::bootstrap);
@@ -64,6 +76,11 @@ public record Preset(WorldSettings world, SurfaceSettings surface, CaveSettings 
 			TBNoiseRouterData.bootstrap(ctx);
 		});
 		this.addPatch(builder, Registries.NOISE_SETTINGS, PresetNoiseGeneratorSettings::bootstrap);
+//		this.addPatch(builder, CHUNK_GENERATOR_KEY, (preset, ctx) -> {
+//			RTFCommon.LOGGER.info( "TFC CHUNK_GENERATOR Patched with " + CHUNK_GENERATOR_KEY + "!");
+//			ctx.register(CHUNK_GENERATOR_KEY, preset);
+//			CUSTOM_CHUNK_GENERATOR.accept(preset, ctx);
+//		});
 		return builder.buildPatch(RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY), registries);
 	}
 	

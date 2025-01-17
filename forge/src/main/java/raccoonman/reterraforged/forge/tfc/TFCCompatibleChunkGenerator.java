@@ -52,6 +52,8 @@ import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import net.minecraftforge.registries.DeferredRegister;
+import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.Nullable;
 import raccoonman.reterraforged.RTFCommon;
 
@@ -62,6 +64,12 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 public class TFCCompatibleChunkGenerator extends ChunkGenerator implements ChunkGeneratorExtension {
+
+    public static final DeferredRegister<Codec<? extends ChunkGenerator>> CHUNK_GENERATOR = DeferredRegister.create(Registries.CHUNK_GENERATOR, RTFCommon.MOD_ID);
+
+    static {
+        CHUNK_GENERATOR.register("overworld", () -> TFCCompatibleChunkGenerator.CODEC);
+    }
 
     public static final Codec<TFCCompatibleChunkGenerator> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             BiomeSource.CODEC.comapFlatMap(TFCCompatibleChunkGenerator::guardBiomeSource, BiomeSourceExtension::self).fieldOf("biome_source").forGetter(c -> c.customBiomeSource),
@@ -101,6 +109,8 @@ public class TFCCompatibleChunkGenerator extends ChunkGenerator implements Chunk
 
         this.stupidMojangChunkGenerator = new NoiseBasedChunkGenerator(biomeSource.self(), noiseSettings);
         this.aquiferCache = new FastConcurrentCache<>(256);
+
+        TFCChunkGeneratorData.INSTANCE = this;
         RTFCommon.LOGGER.info("Initialized TFCCompatibleChunkGenerator!");
     }
 

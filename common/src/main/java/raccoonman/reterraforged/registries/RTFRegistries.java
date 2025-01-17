@@ -2,8 +2,10 @@ package raccoonman.reterraforged.registries;
 
 import com.mojang.serialization.Codec;
 
+import net.dries007.tfc.world.ChunkGeneratorExtension;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import raccoonman.reterraforged.RTFCommon;
 import raccoonman.reterraforged.data.worldgen.preset.settings.Preset;
 import raccoonman.reterraforged.world.worldgen.biome.modifier.BiomeModifier;
@@ -30,12 +32,12 @@ public class RTFRegistries {
 
 	@Deprecated
 	public static final ResourceKey<Registry<Preset>> PRESET = createKey("worldgen/preset");
-	
+
 	public static <T> ResourceKey<T> createKey(ResourceKey<? extends Registry<T>> registryKey, String valueKey) {
 		return ResourceKey.create(registryKey, RTFCommon.location(valueKey));
 	}
 
-	private static <T> ResourceKey<Registry<T>> createKey(String key) {
+	public static <T> ResourceKey<Registry<T>> createKey(String key) {
 		return ResourceKey.createRegistryKey(RTFCommon.location(key));
 	}
 }

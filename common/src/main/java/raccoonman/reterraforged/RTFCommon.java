@@ -1,5 +1,9 @@
 package raccoonman.reterraforged;
 
+import com.mojang.serialization.Codec;
+import net.dries007.tfc.world.TFCChunkGenerator;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,6 +35,7 @@ public class RTFCommon {
 	public static final Logger LOGGER = LogManager.getLogger("ReTerraForged");
 
 	public static void bootstrap() {
+		RTFCommon.LOGGER.info("RTFCommon bootstrapping..");
 		RTFBuiltInRegistries.bootstrap();
 		TemplatePlacements.bootstrap();
 		TemplateDecorators.bootstrap();
@@ -46,7 +51,7 @@ public class RTFCommon {
 		BiomeModifiers.bootstrap();
 		RTFSurfaceRules.bootstrap();
 		StructureRules.bootstrap();
-		
+
 		RegistryUtil.createDataRegistry(RTFRegistries.NOISE, Noise.DIRECT_CODEC);
 		RegistryUtil.createDataRegistry(RTFRegistries.PRESET, Preset.DIRECT_CODEC);
 		RegistryUtil.createDataRegistry(RTFRegistries.STRUCTURE_RULE, StructureRule.DIRECT_CODEC);
