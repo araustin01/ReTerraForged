@@ -1,6 +1,7 @@
 package raccoonman.reterraforged.forge;
 
 import com.mojang.serialization.Codec;
+import net.dries007.tfc.TerraFirmaCraft;
 import net.dries007.tfc.world.ChunkGeneratorExtension;
 import net.dries007.tfc.world.TFCChunkGenerator;
 import net.minecraft.core.Registry;
@@ -35,13 +36,11 @@ public class RTFForge {
     public RTFForge() {
 		RTFCommon.LOGGER.info("Reterraforged Init!");
 
-		Preset.CUSTOM_CHUNK_GENERATOR = (profile, ctx) -> {
-			TFCChunkGeneratorData.bootstrap(profile, (BootstapContext<TFCCompatibleChunkGenerator>) ctx);
-		};
-//
-		Preset.CHUNK_GENERATOR_KEY = TFCChunkGenerator.CHUNK_GENERATOR.getRegistryKey();
+//		Preset.CUSTOM_CHUNK_GENERATOR = (profile, ctx) -> {
+//			TFCChunkGeneratorData.bootstrap(profile, (BootstapContext<TFCCompatibleChunkGenerator>) ctx);
+//		};
 
-//		RegistryUtil.createDataRegistry(CHUNK_GENERATOR, TFCCompatibleChunkGenerator.CODEC);
+//		Preset.CHUNK_GENERATOR_KEY = TFCCompatibleChunkGenerator.CHUNK_GENERATOR.getRegistryKey();
 
     	RTFCommon.bootstrap();
 
@@ -52,10 +51,11 @@ public class RTFForge {
     	}
     	modBus.addListener(RTFForge::gatherData);
 
-		TFCChunkGenerator.CHUNK_GENERATOR.register(modBus);
+		RTFCommon.LOGGER.info("ModBus registering TFCCompatibleChunkGenerator");
+		TFCCompatibleChunkGenerator.CHUNK_GENERATOR_REGISTRY.register(modBus);
     	RegistryUtilImpl.register(modBus);
 
-		// RegistryUtil.createRegistry(TFCChunkGenerator.CHUNK_GENERATOR.getRegistryKey());
+//		RegistryUtil.createDataRegistry(TFCCompatibleChunkGenerator.CHUNK_GENERATOR.getKey(), TFCCompatibleChunkGenerator.CODEC);
     }
     
     private static void gatherData(GatherDataEvent event) {

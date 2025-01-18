@@ -1,6 +1,7 @@
 package raccoonman.reterraforged.forge.tfc;
 
 import com.google.common.collect.ImmutableMap;
+import com.mojang.datafixers.Products;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -35,7 +36,9 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
+import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.level.*;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
@@ -53,7 +56,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import net.minecraftforge.registries.DeferredRegister;
-import org.apache.logging.log4j.Level;
+import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
 import raccoonman.reterraforged.RTFCommon;
 
@@ -65,23 +68,35 @@ import java.util.stream.Collectors;
 
 public class TFCCompatibleChunkGenerator extends ChunkGenerator implements ChunkGeneratorExtension {
 
-    public static final DeferredRegister<Codec<? extends ChunkGenerator>> CHUNK_GENERATOR = DeferredRegister.create(Registries.CHUNK_GENERATOR, RTFCommon.MOD_ID);
+    public static final DeferredRegister<Codec<? extends ChunkGenerator>> CHUNK_GENERATOR_REGISTRY = DeferredRegister.create(Registries.CHUNK_GENERATOR, RTFCommon.MOD_ID);
+    public static final RegistryObject<Codec<TFCCompatibleChunkGenerator>> CHUNK_GENERATOR;
+    public static final Codec<TFCCompatibleChunkGenerator> CODEC;
 
     static {
-        CHUNK_GENERATOR.register("overworld", () -> TFCCompatibleChunkGenerator.CODEC);
-    }
+        RTFCommon.LOGGER.info("DeferredRegister registering type=" + CHUNK_GENERATOR_REGISTRY.getRegistryName());
+        Codec<TFCCompatibleChunkGenerator> codec = RecordCodecBuilder.create(instance -> {
+            RTFCommon.LOGGER.info("RecordCodecBuilder<TFCCompatibleChunkGenerator>");
+            Products.P3<RecordCodecBuilder.Mu<TFCCompatibleChunkGenerator>, BiomeSourceExtension, Holder<NoiseGeneratorSettings>, Settings> group = instance.group(
+                BiomeSource.CODEC.comapFlatMap(TFCCompatibleChunkGenerator::guardBiomeSource, BiomeSourceExtension::self).fieldOf("biome_source").forGetter(c -> c.customBiomeSource),
+                NoiseGeneratorSettings.CODEC.fieldOf("settings").forGetter(c -> c.noiseSettings),
+                Settings.CODEC.fieldOf("tfc_settings").forGetter(c -> c.settings)
+            );
+            RTFCommon.LOGGER.info("Products.P3#apply");
+            return group.apply(instance, TFCCompatibleChunkGenerator::new);
+        });
+        RTFCommon.LOGGER.info("Populating TFCCompatibleChunkGenerator CODEC");
+        CODEC = codec;
 
-    public static final Codec<TFCCompatibleChunkGenerator> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            BiomeSource.CODEC.comapFlatMap(TFCCompatibleChunkGenerator::guardBiomeSource, BiomeSourceExtension::self).fieldOf("biome_source").forGetter(c -> c.customBiomeSource),
-            NoiseGeneratorSettings.CODEC.fieldOf("settings").forGetter(c -> c.noiseSettings),
-            Settings.CODEC.fieldOf("tfc_settings").forGetter(c -> c.settings)
-    ).apply(instance, TFCCompatibleChunkGenerator::new));
+        CHUNK_GENERATOR = CHUNK_GENERATOR_REGISTRY.register("overworld", () -> TFCCompatibleChunkGenerator.CODEC);
+        RTFCommon.LOGGER.info("DeferredRegister registered key=" + CHUNK_GENERATOR.getKey());
+    }
 
     public static final int DECORATION_STEPS = GenerationStep.Decoration.values().length;
     public static final int SEA_LEVEL_Y = 114;
 
     public static DataResult<BiomeSourceExtension> guardBiomeSource(BiomeSource source)
     {
+        RTFCommon.LOGGER.info("TFCCompatibleChunkGenerator#guardBiomeSource");
         return source instanceof BiomeSourceExtension s ? DataResult.success(s) : DataResult.error(() -> "Must be a " + BiomeSourceExtension.class.getSimpleName());
     }
 
@@ -103,6 +118,8 @@ public class TFCCompatibleChunkGenerator extends ChunkGenerator implements Chunk
     {
         super(biomeSource.self());
 
+        RTFCommon.LOGGER.info("Initialized TFCCompatibleChunkGenerator!");
+
         this.noiseSettings = noiseSettings;
         this.customBiomeSource = biomeSource;
         this.settings = settings;
@@ -111,7 +128,6 @@ public class TFCCompatibleChunkGenerator extends ChunkGenerator implements Chunk
         this.aquiferCache = new FastConcurrentCache<>(256);
 
         TFCChunkGeneratorData.INSTANCE = this;
-        RTFCommon.LOGGER.info("Initialized TFCCompatibleChunkGenerator!");
     }
 
     @Override
