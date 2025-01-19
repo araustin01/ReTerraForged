@@ -32,13 +32,6 @@ import raccoonman.reterraforged.registries.RTFRegistries;
 public class RTFForge {
 
     public RTFForge() {
-		RTFCommon.LOGGER.info("Reterraforged Init!");
-
-		Preset.CUSTOM_CHUNK_GENERATOR = (profile, ctx) -> {
-			TFCChunkGeneratorData.bootstrap(profile, (BootstapContext<ChunkGenerator>) ctx);
-		};
-		Preset.CHUNK_GENERATOR_KEY = TFCChunkGeneratorData.CHUNK_GENERATOR_REGISTRY.getRegistryKey();
-
     	RTFCommon.bootstrap();
 
     	IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -51,8 +44,6 @@ public class RTFForge {
 		RTFCommon.LOGGER.info("ModBus registering TFCCompatibleChunkGenerator");
 		TFCChunkGeneratorData.CHUNK_GENERATOR_REGISTRY.register(modBus);
     	RegistryUtilImpl.register(modBus);
-
-//		RegistryUtil.createDataRegistry(TFCCompatibleChunkGenerator.CHUNK_GENERATOR.getKey(), TFCCompatibleChunkGenerator.CODEC);
     }
     
     private static void gatherData(GatherDataEvent event) {

@@ -2,8 +2,10 @@ package raccoonman.reterraforged.forge.tfc;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.mojang.datafixers.Products;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
@@ -65,6 +67,15 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implements ChunkGeneratorExtension {
+
+    public static Codec<TFCCompatibleChunkGenerator> CODEC = RecordCodecBuilder.create(instance -> {
+        Products.P3<RecordCodecBuilder.Mu<TFCCompatibleChunkGenerator>, BiomeSourceExtension, Holder<NoiseGeneratorSettings>, Settings> group = instance.group(
+                BiomeSource.CODEC.comapFlatMap(TFCCompatibleChunkGenerator::guardBiomeSource, BiomeSourceExtension::self).fieldOf("biome_source").forGetter(c -> c.customBiomeSource),
+                NoiseGeneratorSettings.CODEC.fieldOf("settings").forGetter(c -> c.noiseSettings),
+                Settings.CODEC.fieldOf("tfc_settings").forGetter(c -> c.settings)
+        );
+        return group.apply(instance, instance.stable(TFCCompatibleChunkGenerator::new));
+    });
 
     public static final int DECORATION_STEPS = GenerationStep.Decoration.values().length;
     public static final int SEA_LEVEL_Y = 114;
@@ -175,7 +186,7 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
 
     @Override
     protected Codec<TFCCompatibleChunkGenerator> codec() {
-        return TFCChunkGeneratorData.CHUNK_GENERATOR_CODEC;
+        return CODEC;
     }
 
     @Override
@@ -363,7 +374,6 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
         final ChunkNoiseFiller filler = new ChunkNoiseFiller((ProtoChunk) chunk, biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, baseBlockSource, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
 
         return CompletableFuture.supplyAsync(() -> {
-            RTFCommon.LOGGER.info("tfcGen supplyAsync trigger!");
             filler.sampleAquiferSurfaceHeight(this::sampleBiomeNoRiver);
             chunkData.generateFull(filler.surfaceHeight(), filler.aquifer().surfaceHeights());
             chunkData.getRockData().useCache(chunkPos);
@@ -380,9 +390,17 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
             }
         }, Util.backgroundExecutor()).whenCompleteAsync((ret, error) -> {
             // Unlock before surfaces are built, as they use locks directly
-//            sections.forEach(LevelChunkSection::release);
+            sections.forEach(LevelChunkSection::release);
             surfaceManager.buildSurface(actualLevel, chunk, rockLayerSettings(), chunkData, filler.localBiomes(), filler.localBiomesNoRivers(), filler.localBiomeWeights(), filler.createSlopeMap(), random, getSeaLevel(), settings.minY());
-        }, mainExecutor);
+        }, mainExecutor).whenCompleteAsync((ret, error) -> {
+            try {
+                noiseGen.get();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
     }
 

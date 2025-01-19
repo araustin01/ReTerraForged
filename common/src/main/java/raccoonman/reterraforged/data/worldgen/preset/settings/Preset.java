@@ -31,8 +31,6 @@ import java.util.function.Consumer;
 
 
 public record Preset(WorldSettings world, SurfaceSettings surface, CaveSettings caves, ClimateSettings climate, TerrainSettings terrain, RiverSettings rivers, FilterSettings filters, StructureSettings structures, MiscellaneousSettings miscellaneous) {
-	public static BiConsumer<Preset, BootstapContext<?>> CUSTOM_CHUNK_GENERATOR;
-	public static ResourceKey CHUNK_GENERATOR_KEY;
 
 	public static final Codec<Preset> DIRECT_CODEC = RecordCodecBuilder.create(instance -> instance.group(
 		WorldSettings.CODEC.fieldOf("world").forGetter(Preset::world),
@@ -54,7 +52,6 @@ public record Preset(WorldSettings world, SurfaceSettings surface, CaveSettings 
 	}
 
 	public HolderLookup.Provider buildPatch(RegistryAccess registries) {
-		RTFCommon.LOGGER.info("Building patch...");
 		RegistrySetBuilder builder = new RegistrySetBuilder();
 		this.addPatch(builder, RTFRegistries.PRESET, (preset, ctx) -> ctx.register(KEY, preset));
 		this.addPatch(builder, RTFRegistries.NOISE, PresetNoiseData::bootstrap);
@@ -75,7 +72,6 @@ public record Preset(WorldSettings world, SurfaceSettings surface, CaveSettings 
 		});
 		this.addPatch(builder, Registries.NOISE_SETTINGS, (preset, ctx) -> {
 			PresetNoiseGeneratorSettings.bootstrap(preset, ctx);
-			CUSTOM_CHUNK_GENERATOR.accept(preset, ctx);
 		});
 		return builder.buildPatch(RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY), registries);
 	}
