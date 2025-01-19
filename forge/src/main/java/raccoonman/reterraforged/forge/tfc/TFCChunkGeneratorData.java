@@ -28,9 +28,8 @@ public final class TFCChunkGeneratorData {
 
     public static Holder<NoiseGeneratorSettings> CUSTOM_NOISE_SETTINGS;
     public static Codec<TFCCompatibleChunkGenerator> CHUNK_GENERATOR_CODEC = RecordCodecBuilder.create(instance -> {
-        Products.P3<RecordCodecBuilder.Mu<TFCCompatibleChunkGenerator>, BiomeSource, Holder<NoiseGeneratorSettings>, Settings> group = instance.group(
-                // BiomeSource.CODEC.comapFlatMap(TFCCompatibleChunkGenerator::guardBiomeSource, BiomeSourceExtension::self).fieldOf("biome_source").forGetter(c -> c.customBiomeSource)
-                BiomeSource.CODEC.fieldOf("biome_source").forGetter(c -> c.customBiomeSource),
+        Products.P3<RecordCodecBuilder.Mu<TFCCompatibleChunkGenerator>, BiomeSourceExtension, Holder<NoiseGeneratorSettings>, Settings> group = instance.group(
+                BiomeSource.CODEC.comapFlatMap(TFCCompatibleChunkGenerator::guardBiomeSource, BiomeSourceExtension::self).fieldOf("biome_source").forGetter(c -> c.customBiomeSource),
                 NoiseGeneratorSettings.CODEC.fieldOf("settings").forGetter(c -> c.noiseSettings),
                 Settings.CODEC.fieldOf("tfc_settings").forGetter(c -> c.settings)
         );
