@@ -1,5 +1,6 @@
 package raccoonman.reterraforged.world.worldgen.cell.climate;
 
+import raccoonman.reterraforged.RTFCommon;
 import raccoonman.reterraforged.data.worldgen.preset.settings.ClimateSettings;
 import raccoonman.reterraforged.data.worldgen.preset.settings.WorldSettings;
 import raccoonman.reterraforged.data.worldgen.preset.settings.WorldSettings.ControlPoints;
@@ -32,6 +33,7 @@ public class ClimateModule {
 	private Levels levels;
 	
 	public ClimateModule(Seed seed, Continent continent, WorldSettings.ControlPoints controlPoints, ClimateSettings climateSettings, Levels levels) {
+		RTFCommon.LOGGER.info("ClimateModule call!");
 		int biomeSize = climateSettings.biomeShape.biomeSize;
 		
 		float tempScaler = (float) climateSettings.temperature.scale;

@@ -61,7 +61,7 @@ import java.util.concurrent.Executor;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-public class TFCCompatibleChunkGenerator extends ChunkGenerator implements ChunkGeneratorExtension {
+public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implements ChunkGeneratorExtension {
 
     public static final int DECORATION_STEPS = GenerationStep.Decoration.values().length;
     public static final int SEA_LEVEL_Y = 114;
@@ -88,7 +88,7 @@ public class TFCCompatibleChunkGenerator extends ChunkGenerator implements Chunk
 
     public TFCCompatibleChunkGenerator(BiomeSourceExtension biomeSource, Holder<NoiseGeneratorSettings> noiseSettings, Settings settings)
     {
-        super(biomeSource.self());
+        super(biomeSource.self(), noiseSettings);
 
         this.noiseSettings = noiseSettings;
         this.customBiomeSource = biomeSource;
@@ -188,60 +188,62 @@ public class TFCCompatibleChunkGenerator extends ChunkGenerator implements Chunk
     @Override
     public CompletableFuture<ChunkAccess> createBiomes(Executor executor, RandomState state, Blender legacyTerrainBlender, StructureManager structureFeatureManager, ChunkAccess chunk)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            chunkDataProvider.get(chunk);
-            chunk.fillBiomesFromNoise((quartX, quartY, quartZ, sampler) -> customBiomeSource.getBiome(quartX, quartZ), NoopClimateSampler.INSTANCE);
-            return chunk;
-        }, Util.backgroundExecutor());
+        return super.createBiomes(executor, state, legacyTerrainBlender, structureFeatureManager, chunk);
+//        return CompletableFuture.supplyAsync(() -> {
+//            chunkDataProvider.get(chunk);
+//            chunk.fillBiomesFromNoise((quartX, quartY, quartZ, sampler) -> customBiomeSource.getBiome(quartX, quartZ), NoopClimateSampler.INSTANCE);
+//            return chunk;
+//        }, Util.backgroundExecutor());
     }
 
     @Override
     public void applyCarvers(WorldGenRegion level, long seed, RandomState state, BiomeManager biomeManager, StructureManager structureFeatureManager, ChunkAccess chunk, GenerationStep.Carving step)
     {
+        super.applyCarvers(level, seed, state, biomeManager, structureFeatureManager, chunk, step);
         // Skip water carving, only do air carving, since we use aquifers
-        if (step != GenerationStep.Carving.AIR)
-        {
-            return;
-        }
-
-        final BiomeManager customBiomeManager = biomeManager.withDifferentSource((x, y, z) -> customBiomeSource.getBiome(x, z));
-        final PositionalRandomFactory fork = new XoroshiroRandomSource(seed).forkPositional();
-        final ChunkPos chunkPos = chunk.getPos();
-
-        final ChunkNoiseSamplingSettings settings = createNoiseSamplingSettingsForChunk(chunk);
-        final ChunkBaseBlockSource baseBlockSource = createBaseBlockSourceForChunk(chunk);
-        final TFCAquifer aquifer = getOrCreateAquifer(chunk, settings, baseBlockSource);
-
-        @SuppressWarnings("ConstantConditions")
-        final CarvingContext context = new CarvingContext(stupidMojangChunkGenerator, null, chunk.getHeightAccessorForGeneration(), null, state, this.noiseSettings.value().surfaceRule());
-        final CarvingMask carvingMask = ((ProtoChunk) chunk).getOrCreateCarvingMask(step);
-
-        for (int offsetX = -8; offsetX <= 8; ++offsetX)
-        {
-            for (int offsetZ = -8; offsetZ <= 8; ++offsetZ)
-            {
-                final ChunkPos offsetChunkPos = new ChunkPos(chunkPos.x + offsetX, chunkPos.z + offsetZ);
-                final ChunkAccess offsetChunk = level.getChunk(offsetChunkPos.x, offsetChunkPos.z);
-
-                @SuppressWarnings("deprecation")
-                final Iterable<Holder<ConfiguredWorldCarver<?>>> iterable = offsetChunk
-                        .carverBiome(() -> customBiomeSource.getBiome(QuartPos.fromBlock(offsetChunkPos.getMinBlockX()), QuartPos.fromBlock(offsetChunkPos.getMinBlockZ())).value().getGenerationSettings())
-                        .getCarvers(step);
-
-                int i = 1;
-                for (Holder<ConfiguredWorldCarver<?>> holder : iterable)
-                {
-                    final RandomSource chunkRandom = fork.at(offsetChunkPos.x, i, offsetChunkPos.z);
-
-                    final ConfiguredWorldCarver<?> carver = holder.value();
-                    if (carver.isStartChunk(chunkRandom))
-                    {
-                        carver.carve(context, chunk, customBiomeManager::getBiome, chunkRandom, aquifer, offsetChunkPos, carvingMask);
-                    }
-                    i++;
-                }
-            }
-        }
+//        if (step != GenerationStep.Carving.AIR)
+//        {
+//            return;
+//        }
+//
+//        final BiomeManager customBiomeManager = biomeManager.withDifferentSource((x, y, z) -> customBiomeSource.getBiome(x, z));
+//        final PositionalRandomFactory fork = new XoroshiroRandomSource(seed).forkPositional();
+//        final ChunkPos chunkPos = chunk.getPos();
+//
+//        final ChunkNoiseSamplingSettings settings = createNoiseSamplingSettingsForChunk(chunk);
+//        final ChunkBaseBlockSource baseBlockSource = createBaseBlockSourceForChunk(chunk);
+//        final TFCAquifer aquifer = getOrCreateAquifer(chunk, settings, baseBlockSource);
+//
+//        @SuppressWarnings("ConstantConditions")
+//        final CarvingContext context = new CarvingContext(stupidMojangChunkGenerator, null, chunk.getHeightAccessorForGeneration(), null, state, this.noiseSettings.value().surfaceRule());
+//        final CarvingMask carvingMask = ((ProtoChunk) chunk).getOrCreateCarvingMask(step);
+//
+//        for (int offsetX = -8; offsetX <= 8; ++offsetX)
+//        {
+//            for (int offsetZ = -8; offsetZ <= 8; ++offsetZ)
+//            {
+//                final ChunkPos offsetChunkPos = new ChunkPos(chunkPos.x + offsetX, chunkPos.z + offsetZ);
+//                final ChunkAccess offsetChunk = level.getChunk(offsetChunkPos.x, offsetChunkPos.z);
+//
+//                @SuppressWarnings("deprecation")
+//                final Iterable<Holder<ConfiguredWorldCarver<?>>> iterable = offsetChunk
+//                        .carverBiome(() -> customBiomeSource.getBiome(QuartPos.fromBlock(offsetChunkPos.getMinBlockX()), QuartPos.fromBlock(offsetChunkPos.getMinBlockZ())).value().getGenerationSettings())
+//                        .getCarvers(step);
+//
+//                int i = 1;
+//                for (Holder<ConfiguredWorldCarver<?>> holder : iterable)
+//                {
+//                    final RandomSource chunkRandom = fork.at(offsetChunkPos.x, i, offsetChunkPos.z);
+//
+//                    final ConfiguredWorldCarver<?> carver = holder.value();
+//                    if (carver.isStartChunk(chunkRandom))
+//                    {
+//                        carver.carve(context, chunk, customBiomeManager::getBiome, chunkRandom, aquifer, offsetChunkPos, carvingMask);
+//                    }
+//                    i++;
+//                }
+//            }
+//        }
     }
 
     @Override
@@ -321,7 +323,8 @@ public class TFCCompatibleChunkGenerator extends ChunkGenerator implements Chunk
     @Override
     public void buildSurface(WorldGenRegion level, StructureManager structureFeatureManager, RandomState state, ChunkAccess chunk)
     {
-        makeBedrock(chunk);
+        super.buildSurface(level, structureFeatureManager, state, chunk);
+        // makeBedrock(chunk);
     }
 
     @Override
@@ -366,6 +369,7 @@ public class TFCCompatibleChunkGenerator extends ChunkGenerator implements Chunk
     @Override
     public CompletableFuture<ChunkAccess> fillFromNoise(Executor mainExecutor, Blender oldTerrainBlender, RandomState rawState, StructureManager structureFeatureManager, ChunkAccess chunk)
     {
+        CompletableFuture<ChunkAccess> rtfNoise = super.fillFromNoise(mainExecutor, oldTerrainBlender, rawState, structureFeatureManager, chunk);
         // Initialization
         final ChunkNoiseSamplingSettings settings = createNoiseSamplingSettingsForChunk(chunk);
         final LevelAccessor actualLevel = (LevelAccessor) ((ChunkAccessAccessor) chunk).accessor$getLevelHeightAccessor();
@@ -385,7 +389,7 @@ public class TFCCompatibleChunkGenerator extends ChunkGenerator implements Chunk
         final ChunkBaseBlockSource baseBlockSource = createBaseBlockSourceForChunk(chunk);
         final ChunkNoiseFiller filler = new ChunkNoiseFiller((ProtoChunk) chunk, biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, baseBlockSource, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
 
-        return CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<ChunkAccess> initialFuture = CompletableFuture.supplyAsync(() -> {
             filler.sampleAquiferSurfaceHeight(this::sampleBiomeNoRiver);
             chunkData.generateFull(filler.surfaceHeight(), filler.aquifer().surfaceHeights());
             chunkData.getRockData().useCache(chunkPos);
@@ -400,37 +404,43 @@ public class TFCCompatibleChunkGenerator extends ChunkGenerator implements Chunk
 
             surfaceManager.buildSurface(actualLevel, chunk, rockLayerSettings(), chunkData, filler.localBiomes(), filler.localBiomesNoRivers(), filler.localBiomeWeights(), filler.createSlopeMap(), random, getSeaLevel(), settings.minY());
         }, mainExecutor);
+
+        // Chain the rtfNoise CompletableFuture
+        return initialFuture.thenCompose(c -> rtfNoise);
     }
 
     @Override
     public int getSeaLevel()
     {
-        return SEA_LEVEL_Y;
+        return super.getSeaLevel();
     }
 
     @Override
     public int getMinY()
     {
-        return noiseSettings.value().noiseSettings().minY();
+        return super.getMinY();
     }
 
     @Override
     public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor level, RandomState state)
     {
-        final ChunkPos pos = new ChunkPos(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z));
-        return (int) createHeightFillerForChunk(pos).sampleHeight(x, z);
+        return super.getBaseHeight(x, z, type, level, state);
+//        final ChunkPos pos = new ChunkPos(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z));
+//        return (int) createHeightFillerForChunk(pos).sampleHeight(x, z);
     }
 
     @Override
     public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor level, RandomState state)
     {
-        return new NoiseColumn(0, new BlockState[0]);
+        // return new NoiseColumn(0, new BlockState[0]);
+        return super.getBaseColumn(x, z, level, state);
     }
 
     @Override
     public void addDebugScreenInfo(List<String> list, RandomState state, BlockPos pos)
     {
-        list.add("Shore: " + createShoreSamplerForChunk().noise(pos.getX(), pos.getZ()));
+        //list.add("Shore: " + createShoreSamplerForChunk().noise(pos.getX(), pos.getZ()));
+        super.addDebugScreenInfo(list, state, pos);
     }
 
     /**
