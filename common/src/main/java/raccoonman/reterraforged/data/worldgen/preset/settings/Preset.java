@@ -3,10 +3,7 @@ package raccoonman.reterraforged.data.worldgen.preset.settings;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.core.RegistrySetBuilder;
+import net.minecraft.core.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.worldgen.BootstapContext;
@@ -30,6 +27,7 @@ import raccoonman.reterraforged.registries.RTFRegistries;
 
 import javax.sound.midi.Patch;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 
 public record Preset(WorldSettings world, SurfaceSettings surface, CaveSettings caves, ClimateSettings climate, TerrainSettings terrain, RiverSettings rivers, FilterSettings filters, StructureSettings structures, MiscellaneousSettings miscellaneous) {
@@ -75,12 +73,10 @@ public record Preset(WorldSettings world, SurfaceSettings surface, CaveSettings 
 			PresetNoiseRouterData.bootstrap(preset, ctx);
 			TBNoiseRouterData.bootstrap(ctx);
 		});
-		this.addPatch(builder, Registries.NOISE_SETTINGS, PresetNoiseGeneratorSettings::bootstrap);
-//		this.addPatch(builder, CHUNK_GENERATOR_KEY, (preset, ctx) -> {
-//			RTFCommon.LOGGER.info( "TFC CHUNK_GENERATOR Patched with " + CHUNK_GENERATOR_KEY + "!");
-//			ctx.register(CHUNK_GENERATOR_KEY, preset);
-//			CUSTOM_CHUNK_GENERATOR.accept(preset, ctx);
-//		});
+		this.addPatch(builder, Registries.NOISE_SETTINGS, (preset, ctx) -> {
+			PresetNoiseGeneratorSettings.bootstrap(preset, ctx);
+			CUSTOM_CHUNK_GENERATOR.accept(preset, ctx);
+		});
 		return builder.buildPatch(RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY), registries);
 	}
 	
