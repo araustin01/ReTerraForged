@@ -11,6 +11,7 @@ import net.minecraft.data.worldgen.BootstapContext;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
@@ -34,18 +35,17 @@ public final class TFCChunkGeneratorData {
                 NoiseGeneratorSettings.CODEC.fieldOf("settings").forGetter(c -> c.noiseSettings),
                 Settings.CODEC.fieldOf("tfc_settings").forGetter(c -> c.settings)
         );
-        return group.apply(instance, ((biomeSourceExtension, noiseGeneratorSettingsHolder, settings) -> {
-            if(CUSTOM_NOISE_SETTINGS != null) {
-                RTFCommon.LOGGER.info("Success!! Using custom NoiseGeneratorSettings: [" + CUSTOM_NOISE_SETTINGS + "]");
-            }
-            return new TFCCompatibleChunkGenerator(biomeSourceExtension, CUSTOM_NOISE_SETTINGS != null ? CUSTOM_NOISE_SETTINGS : noiseGeneratorSettingsHolder, settings);
-        }));
+        //            if(CUSTOM_NOISE_SETTINGS != null) {
+        //                RTFCommon.LOGGER.info("Success!! Using custom NoiseGeneratorSettings: [" + CUSTOM_NOISE_SETTINGS + "]");
+        //            }
+        return group.apply(instance, instance.stable(TFCCompatibleChunkGenerator::new));
     });
 
     public static RegistryObject<Codec<TFCCompatibleChunkGenerator>> CHUNK_GENERATOR;
 
     static {
         RTFCommon.LOGGER.info("TFCChunkGeneratorData Bootstrap registering type=" + CHUNK_GENERATOR_REGISTRY.getRegistryName());
+        //CHUNK_GENERATOR = CHUNK_GENERATOR_REGISTRY.register("overworld", () -> CHUNK_GENERATOR_CODEC);
         CHUNK_GENERATOR = CHUNK_GENERATOR_REGISTRY.register("overworld", () -> CHUNK_GENERATOR_CODEC);
         RTFCommon.LOGGER.info("DeferredRegister registered key=" + CHUNK_GENERATOR.getKey());
     }
