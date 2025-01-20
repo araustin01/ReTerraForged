@@ -1,7 +1,6 @@
 package raccoonman.reterraforged;
 
 import com.mojang.serialization.Codec;
-import net.dries007.tfc.world.TFCChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;

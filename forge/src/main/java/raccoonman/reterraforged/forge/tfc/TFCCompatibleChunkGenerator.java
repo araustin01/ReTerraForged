@@ -78,7 +78,6 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
     });
 
     public static final int DECORATION_STEPS = GenerationStep.Decoration.values().length;
-    public static final int SEA_LEVEL_Y = 114;
 
     public static DataResult<BiomeSourceExtension> guardBiomeSource(BiomeSource source) {
         RTFCommon.LOGGER.info("TFCCompatibleChunkGenerator#guardBiomeSource");
@@ -91,7 +90,6 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
     public Holder<NoiseGeneratorSettings> noiseSettings; // Supplier is resolved in constructor
     public Settings settings;
 
-    private final NoiseBasedChunkGenerator stupidMojangChunkGenerator; // Mojang fix your god awful deprecated carver nonsense
     private final FastConcurrentCache<TFCAquifer> aquiferCache;
 
     private ChunkDataProvider chunkDataProvider;
@@ -106,7 +104,6 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
         this.customBiomeSource = biomeSource;
         this.settings = settings;
 
-        this.stupidMojangChunkGenerator = new NoiseBasedChunkGenerator(biomeSource.self(), noiseSettings);
         this.aquiferCache = new FastConcurrentCache<>(256);
 
         RTFCommon.LOGGER.info("Initialized TFCCompatibleChunkGenerator:");
@@ -117,8 +114,8 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
         }
 
         RTFCommon.LOGGER.info("> Noise Settings: ");
-        Optional<ResourceKey<NoiseGeneratorSettings>> optional = noiseSettings.unwrapKey();
-        optional.ifPresent(resourceKey -> RTFCommon.LOGGER.info("\t -" + resourceKey));
+        NoiseGeneratorSettings n_settings = noiseSettings.get();
+        RTFCommon.LOGGER.info("\t" + n_settings);
 
         RTFCommon.LOGGER.info("> TFC Settings: ");
         RTFCommon.LOGGER.info(settings.toString());
@@ -377,31 +374,12 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
             filler.sampleAquiferSurfaceHeight(this::sampleBiomeNoRiver);
             chunkData.generateFull(filler.surfaceHeight(), filler.aquifer().surfaceHeights());
             chunkData.getRockData().useCache(chunkPos);
-            filler.fillFromNoise();
+            //filler.fillFromNoise();
 
             aquiferCache.set(chunkPos.x, chunkPos.z, filler.aquifer());
 
-            try {
-                return noiseGen.get();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        }, Util.backgroundExecutor()).whenCompleteAsync((ret, error) -> {
-            // Unlock before surfaces are built, as they use locks directly
-            sections.forEach(LevelChunkSection::release);
-            surfaceManager.buildSurface(actualLevel, chunk, rockLayerSettings(), chunkData, filler.localBiomes(), filler.localBiomesNoRivers(), filler.localBiomeWeights(), filler.createSlopeMap(), random, getSeaLevel(), settings.minY());
-        }, mainExecutor).whenCompleteAsync((ret, error) -> {
-            try {
-                noiseGen.get();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        });
-
+            return chunk;
+        }, Util.backgroundExecutor()).thenCompose(c -> noiseGen);
     }
 
     @Override

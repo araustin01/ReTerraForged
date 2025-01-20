@@ -1,5 +1,4 @@
 {
-  
   "required": true,
   "plugin": "raccoonman.reterraforged.mixin.plugin.MixinPlugin",
   "package": "raccoonman.reterraforged.mixin",

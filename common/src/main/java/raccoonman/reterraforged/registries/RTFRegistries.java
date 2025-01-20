@@ -2,10 +2,8 @@ package raccoonman.reterraforged.registries;
 
 import com.mojang.serialization.Codec;
 
-import net.dries007.tfc.world.ChunkGeneratorExtension;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.level.chunk.ChunkGenerator;
 import raccoonman.reterraforged.RTFCommon;
 import raccoonman.reterraforged.data.worldgen.preset.settings.Preset;
 import raccoonman.reterraforged.world.worldgen.biome.modifier.BiomeModifier;
