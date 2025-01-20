@@ -247,66 +247,67 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
 
     @Override
     public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureFeatureManager) {
-        final ChunkPos chunkPos = chunk.getPos();
-        final SectionPos sectionPos = SectionPos.of(chunkPos, level.getMinSection());
-        final BlockPos originPos = sectionPos.origin();
-
-        final Registry<Structure> structureFeatures = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
-        final Map<Integer, List<Structure>> structureFeaturesByStep = structureFeatures.stream()
-                .collect(Collectors.groupingBy(feature -> feature.step().ordinal()));
-
-        final List<FeatureSorter.StepFeatureData> orderedFeatures = ((ChunkGeneratorAccessor) this).accessor$getFeaturesPerStep().get();
-        final WorldgenRandom random = new WorldgenRandom(new XoroshiroRandomSource(RandomSupport.generateUniqueSeed()));
-        final long baseSeed = Helpers.hash(128739412341L, originPos);
-
-        final Set<Biome> allAdjacentBiomes = new ObjectArraySet<>();
-        ChunkPos.rangeClosed(sectionPos.chunk(), 1).forEach((chunkPos1_) -> {
-            final ChunkAccess adjChunk = level.getChunk(chunkPos1_.x, chunkPos1_.z);
-            for (LevelChunkSection adjSection : adjChunk.getSections()) {
-                adjSection.getBiomes().getAll(biome -> allAdjacentBiomes.add(biome.value()));
-            }
-        });
-
-        for (int decorationIndex = 0; decorationIndex < Math.max(DECORATION_STEPS, orderedFeatures.size()); ++decorationIndex) {
-            if (structureFeatureManager.shouldGenerateStructures()) {
-                int featureIndex = 0;
-                for (Structure feature : structureFeaturesByStep.getOrDefault(decorationIndex, Collections.emptyList())) {
-                    Helpers.seedLargeFeatures(random, baseSeed, featureIndex, decorationIndex);
-
-                    structureFeatureManager
-                            .startsForStructure(sectionPos, feature)
-                            .forEach(start -> start.placeInChunk(level, structureFeatureManager, this, random, getBoundingBoxForStructure(chunk), chunkPos));
-                    featureIndex++;
-                }
-            }
-
-            if (decorationIndex < orderedFeatures.size()) {
-                final IntSet featureIndices = new IntArraySet();
-                for (Biome biome : allAdjacentBiomes) {
-                    List<HolderSet<PlacedFeature>> featuresPerBiome = TFCBiomes.getExtensionOrThrow(level, biome).getFlattenedFeatures(biome);
-                    if (decorationIndex < featuresPerBiome.size()) {
-                        final HolderSet<PlacedFeature> featuresPerBiomeAtStep = featuresPerBiome.get(decorationIndex);
-                        final FeatureSorter.StepFeatureData stepIndex = orderedFeatures.get(decorationIndex);
-                        for (Holder<PlacedFeature> holder : featuresPerBiomeAtStep) {
-                            featureIndices.add(stepIndex.indexMapping().applyAsInt(holder.value()));
-                        }
-                    }
-                }
-
-                final int[] sortedIndices = featureIndices.toIntArray();
-                final FeatureSorter.StepFeatureData step = orderedFeatures.get(decorationIndex);
-
-                Arrays.sort(sortedIndices);
-                for (int featureIndex : sortedIndices) {
-                    Helpers.seedLargeFeatures(random, baseSeed, featureIndex, decorationIndex);
-                    step.features()
-                            .get(featureIndex)
-                            .placeWithBiomeCheck(level, this, random, originPos);
-                }
-            }
-        }
-
-        level.setCurrentlyGenerating(null);
+        super.applyBiomeDecoration(level, chunk, structureFeatureManager);
+//        final ChunkPos chunkPos = chunk.getPos();
+//        final SectionPos sectionPos = SectionPos.of(chunkPos, level.getMinSection());
+//        final BlockPos originPos = sectionPos.origin();
+//
+//        final Registry<Structure> structureFeatures = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+//        final Map<Integer, List<Structure>> structureFeaturesByStep = structureFeatures.stream()
+//                .collect(Collectors.groupingBy(feature -> feature.step().ordinal()));
+//
+//        final List<FeatureSorter.StepFeatureData> orderedFeatures = ((ChunkGeneratorAccessor) this).accessor$getFeaturesPerStep().get();
+//        final WorldgenRandom random = new WorldgenRandom(new XoroshiroRandomSource(RandomSupport.generateUniqueSeed()));
+//        final long baseSeed = Helpers.hash(128739412341L, originPos);
+//
+//        final Set<Biome> allAdjacentBiomes = new ObjectArraySet<>();
+//        ChunkPos.rangeClosed(sectionPos.chunk(), 1).forEach((chunkPos1_) -> {
+//            final ChunkAccess adjChunk = level.getChunk(chunkPos1_.x, chunkPos1_.z);
+//            for (LevelChunkSection adjSection : adjChunk.getSections()) {
+//                adjSection.getBiomes().getAll(biome -> allAdjacentBiomes.add(biome.value()));
+//            }
+//        });
+//
+//        for (int decorationIndex = 0; decorationIndex < Math.max(DECORATION_STEPS, orderedFeatures.size()); ++decorationIndex) {
+//            if (structureFeatureManager.shouldGenerateStructures()) {
+//                int featureIndex = 0;
+//                for (Structure feature : structureFeaturesByStep.getOrDefault(decorationIndex, Collections.emptyList())) {
+//                    Helpers.seedLargeFeatures(random, baseSeed, featureIndex, decorationIndex);
+//
+//                    structureFeatureManager
+//                            .startsForStructure(sectionPos, feature)
+//                            .forEach(start -> start.placeInChunk(level, structureFeatureManager, this, random, getBoundingBoxForStructure(chunk), chunkPos));
+//                    featureIndex++;
+//                }
+//            }
+//
+//            if (decorationIndex < orderedFeatures.size()) {
+//                final IntSet featureIndices = new IntArraySet();
+//                for (Biome biome : allAdjacentBiomes) {
+//                    List<HolderSet<PlacedFeature>> featuresPerBiome = TFCBiomes.getExtensionOrThrow(level, biome).getFlattenedFeatures(biome);
+//                    if (decorationIndex < featuresPerBiome.size()) {
+//                        final HolderSet<PlacedFeature> featuresPerBiomeAtStep = featuresPerBiome.get(decorationIndex);
+//                        final FeatureSorter.StepFeatureData stepIndex = orderedFeatures.get(decorationIndex);
+//                        for (Holder<PlacedFeature> holder : featuresPerBiomeAtStep) {
+//                            featureIndices.add(stepIndex.indexMapping().applyAsInt(holder.value()));
+//                        }
+//                    }
+//                }
+//
+//                final int[] sortedIndices = featureIndices.toIntArray();
+//                final FeatureSorter.StepFeatureData step = orderedFeatures.get(decorationIndex);
+//
+//                Arrays.sort(sortedIndices);
+//                for (int featureIndex : sortedIndices) {
+//                    Helpers.seedLargeFeatures(random, baseSeed, featureIndex, decorationIndex);
+//                    step.features()
+//                            .get(featureIndex)
+//                            .placeWithBiomeCheck(level, this, random, originPos);
+//                }
+//            }
+//        }
+//
+//        level.setCurrentlyGenerating(null);
     }
 
     @Override
