@@ -3,7 +3,8 @@
   "generator": {
       "type": "reterraforged:overworld",
       "biome_source": {
-        "type": "tfc:overworld"
+        "type": "reterraforged:overworld",
+        "preset": "minecraft:overworld"
       },
       "settings": "minecraft:overworld",
       "tfc_settings": {

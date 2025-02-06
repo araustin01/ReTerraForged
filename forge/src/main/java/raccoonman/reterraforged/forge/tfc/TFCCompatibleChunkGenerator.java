@@ -80,7 +80,6 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
     public static final int DECORATION_STEPS = GenerationStep.Decoration.values().length;
 
     public static DataResult<BiomeSourceExtension> guardBiomeSource(BiomeSource source) {
-        RTFCommon.LOGGER.info("TFCCompatibleChunkGenerator#guardBiomeSource");
         return source instanceof BiomeSourceExtension s ? DataResult.success(s) : DataResult.error(() -> "Must be a " + BiomeSourceExtension.class.getSimpleName());
     }
 
@@ -107,7 +106,7 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
         this.aquiferCache = new FastConcurrentCache<>(256);
 
         RTFCommon.LOGGER.info("Initialized TFCCompatibleChunkGenerator:");
-        RTFCommon.LOGGER.info("> Custom Biomes:");
+        RTFCommon.LOGGER.info("> Custom Biomes[" + this.customBiomeSource.getClass().getName() + "]:");
         for (Holder<Biome> biome : this.customBiomeSource.self().possibleBiomes()) {
             Optional<ResourceKey<Biome>> optional = biome.unwrapKey();
             optional.ifPresent(resourceKey -> RTFCommon.LOGGER.info("\t -" + resourceKey));
@@ -176,11 +175,6 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
         ((RandomStateExtension) (Object) ((ChunkMapAccessor) chunkMap).accessor$getRandomState()).tfc$setChunkGeneratorExtension(this);
     }
 
-    public ChunkHeightFiller createHeightFillerForChunk(ChunkPos pos) {
-        final Object2DoubleMap<BiomeExtension>[] biomeWeights = ChunkBiomeSampler.sampleBiomes(pos, this::sampleBiomeNoRiver, BiomeExtension::biomeBlendType);
-        return new ChunkHeightFiller(biomeWeights, customBiomeSource, createBiomeSamplersForChunk(null), createRiverSamplersForChunk(), createShoreSamplerForChunk(), getSeaLevel());
-    }
-
     @Override
     protected Codec<TFCCompatibleChunkGenerator> codec() {
         return CODEC;
@@ -214,7 +208,7 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
 //        final TFCAquifer aquifer = getOrCreateAquifer(chunk, settings, baseBlockSource);
 //
 //        @SuppressWarnings("ConstantConditions")
-//        final CarvingContext context = new CarvingContext(stupidMojangChunkGenerator, null, chunk.getHeightAccessorForGeneration(), null, state, this.noiseSettings.value().surfaceRule());
+//        final CarvingContext context = new CarvingContext(this, null, chunk.getHeightAccessorForGeneration(), null, state, this.noiseSettings.value().surfaceRule());
 //        final CarvingMask carvingMask = ((ProtoChunk) chunk).getOrCreateCarvingMask(step);
 //
 //        for (int offsetX = -8; offsetX <= 8; ++offsetX)
@@ -330,7 +324,7 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
 
     @Override
     public BiomeSource getBiomeSource() {
-        return customBiomeSource.self();
+        return this.biomeSource;
     }
 
     @Override
@@ -351,33 +345,26 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
 
     @Override
     public CompletableFuture<ChunkAccess> fillFromNoise(Executor mainExecutor, Blender oldTerrainBlender, RandomState rawState, StructureManager structureFeatureManager, ChunkAccess chunk) {
-        CompletableFuture<ChunkAccess> noiseGen = super.fillFromNoise(mainExecutor, oldTerrainBlender, rawState, structureFeatureManager, chunk);
-        
         // Initialization
         final ChunkNoiseSamplingSettings settings = createNoiseSamplingSettingsForChunk(chunk);
-        final LevelAccessor actualLevel = (LevelAccessor) ((ChunkAccessAccessor) chunk).accessor$getLevelHeightAccessor();
+//        final LevelAccessor actualLevel = (LevelAccessor) ((ChunkAccessAccessor) chunk).accessor$getLevelHeightAccessor();
         final ChunkPos chunkPos = chunk.getPos();
-        final RandomSource random = new XoroshiroRandomSource(chunkPos.x * 1842639486192314L, chunkPos.z * 579238196380231L);
+//        final RandomSource random = new XoroshiroRandomSource(chunkPos.x * 1842639486192314L, chunkPos.z * 579238196380231L);
         final ChunkData chunkData = chunkDataProvider.get(chunk);
 
-        // Lock sections
-        final Set<LevelChunkSection> sections = new HashSet<>();
-        for (LevelChunkSection section : chunk.getSections()) {
-//            section.acquire();
-            sections.add(section);
-        }
-
         final Object2DoubleMap<BiomeExtension>[] biomeWeights = ChunkBiomeSampler.sampleBiomes(chunkPos, this::sampleBiomeNoRiver, BiomeExtension::biomeBlendType);
-        final ChunkBaseBlockSource baseBlockSource = createBaseBlockSourceForChunk(chunk);
-        final ChunkNoiseFiller filler = new ChunkNoiseFiller((ProtoChunk) chunk, biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, baseBlockSource, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
+//        final ChunkBaseBlockSource baseBlockSource = createBaseBlockSourceForChunk(chunk);
+        final ChunkNoiseFiller filler = new ChunkNoiseFiller((ProtoChunk) chunk, biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, null, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
+
+        CompletableFuture<ChunkAccess> noiseGen = super.fillFromNoise(mainExecutor, oldTerrainBlender, rawState, structureFeatureManager, chunk);
 
         return CompletableFuture.supplyAsync(() -> {
-            filler.sampleAquiferSurfaceHeight(this::sampleBiomeNoRiver);
+//            filler.sampleAquiferSurfaceHeight(this::sampleBiomeNoRiver);
             chunkData.generateFull(filler.surfaceHeight(), filler.aquifer().surfaceHeights());
-            chunkData.getRockData().useCache(chunkPos);
-            //filler.fillFromNoise();
+//            chunkData.getRockData().useCache(chunkPos);
+//            filler.fillFromNoise();
 
-            aquiferCache.set(chunkPos.x, chunkPos.z, filler.aquifer());
+//            aquiferCache.set(chunkPos.x, chunkPos.z, filler.aquifer());
 
             return chunk;
         }, Util.backgroundExecutor()).thenCompose(c -> noiseGen);
@@ -410,38 +397,6 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
     public void addDebugScreenInfo(List<String> list, RandomState state, BlockPos pos) {
         //list.add("Shore: " + createShoreSamplerForChunk().noise(pos.getX(), pos.getZ()));
         super.addDebugScreenInfo(list, state, pos);
-    }
-
-    /**
-     * Builds either a single flat layer of bedrock, or natural vanilla bedrock
-     * Writes directly to the bottom chunk section for better efficiency
-     */
-    private void makeBedrock(ChunkAccess chunk) {
-        final ChunkPos chunkPos = chunk.getPos();
-        final RandomSource random = new XoroshiroRandomSource(chunkPos.x * 2369412341L, chunkPos.z * 8192836412341L);
-        final LevelChunkSection bottomSection = chunk.getSection(0);
-        final BlockState bedrock = Blocks.BEDROCK.defaultBlockState();
-
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                if (settings.flatBedrock()) {
-                    bottomSection.setBlockState(x, 0, z, bedrock, false);
-                } else {
-                    for (int y = 0; y < 6; y++) {
-                        if (random.nextInt(6) < 6 - y) {
-                            bottomSection.setBlockState(x, y, z, bedrock, false);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private BoundingBox getBoundingBoxForStructure(ChunkAccess chunk) {
-        final ChunkPos pos = chunk.getPos();
-        final int blockX = pos.getMinBlockX(), blockZ = pos.getMinBlockZ();
-        final LevelHeightAccessor level = chunk.getHeightAccessorForGeneration();
-        return new BoundingBox(blockX, level.getMinBuildHeight() + 1, blockZ, blockX + 15, level.getMaxBuildHeight() - 1, blockZ + 15);
     }
 
     private BiomeExtension sampleBiomeNoRiver(int blockX, int blockZ) {
