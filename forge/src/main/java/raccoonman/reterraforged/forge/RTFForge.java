@@ -15,7 +15,6 @@ import raccoonman.reterraforged.client.data.RTFLanguageProvider;
 import raccoonman.reterraforged.client.data.RTFTranslationKeys;
 import raccoonman.reterraforged.forge.tfc.biome.TFCBiomeSource;
 import raccoonman.reterraforged.forge.tfc.TFCChunkGeneratorData;
-import raccoonman.reterraforged.forge.tfc.biome.TFCBiomeSourceParameterList;
 import raccoonman.reterraforged.platform.forge.RegistryUtilImpl;
 
 @Mod(RTFCommon.MOD_ID)

@@ -5,14 +5,18 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.Lifecycle;
 import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.dries007.tfc.world.biome.BiomeExtension;
 import net.dries007.tfc.world.biome.BiomeSourceExtension;
+import net.dries007.tfc.world.biome.RegionBiomeSource;
 import net.dries007.tfc.world.layer.framework.ConcurrentArea;
 import net.dries007.tfc.world.region.RegionGenerator;
 import net.dries007.tfc.world.region.RegionPartition;
 import net.dries007.tfc.world.region.Units;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.util.VisibleForDebug;
 import net.minecraft.world.level.biome.*;
 import net.minecraftforge.registries.DeferredRegister;
@@ -34,23 +38,24 @@ public class TFCBiomeSource extends BiomeSource implements BiomeSourceExtension 
         ENTRY_CODEC = Biome.CODEC.fieldOf("biome");
         DIRECT_CODEC = Climate.ParameterList.codec(ENTRY_CODEC).fieldOf("biomes");
         PRESET_CODEC = MultiNoiseBiomeSourceParameterList.CODEC.fieldOf("preset").withLifecycle(Lifecycle.stable());
-        CODEC = Codec.mapEither(DIRECT_CODEC, PRESET_CODEC).xmap(TFCBiomeSource::new, (arg) -> {
-            return arg.parameters;
-        }).codec();
+        CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.mapEither(DIRECT_CODEC, PRESET_CODEC).forGetter(c -> c.parameters),
+                RegistryOps.retrieveGetter(Registries.BIOME)
+        ).apply(instance, TFCBiomeSource::new));
         BIOME_SOURCE.register("overworld", () -> CODEC);
     }
 
-//    private final HolderGetter<Biome> biomeRegistry;
+    private final HolderGetter<Biome> biomeRegistry;
     private RegionGenerator regionGenerator;
     private ConcurrentArea<BiomeExtension> biomeLayer;
 
     private final Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters;
 
-    public TFCBiomeSource(Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> either)
+    public TFCBiomeSource(Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> either, HolderGetter<Biome> biomeRegistry)
     {
         RTFCommon.LOGGER.info("Initializing TFCBiomeSource!");
-//        this.biomeRegistry = biomeRegistry;
         this.parameters = either;
+        this.biomeRegistry = biomeRegistry;
     }
 
     @Override
@@ -62,8 +67,7 @@ public class TFCBiomeSource extends BiomeSource implements BiomeSourceExtension 
     @Override
     public Holder<Biome> getBiomeFromExtension(BiomeExtension extension)
     {
-//        return biomeRegistry.getOrThrow(extension.key());
-        return null;
+        return biomeRegistry.getOrThrow(extension.key());
     }
 
     public RegionPartition.Point getPartition(int blockX, int blockZ)
@@ -81,7 +85,7 @@ public class TFCBiomeSource extends BiomeSource implements BiomeSourceExtension 
     @Override
     public BiomeSourceExtension copy()
     {
-        return new TFCBiomeSource(parameters);
+        return new TFCBiomeSource(parameters, biomeRegistry);
     }
 
     @Override
