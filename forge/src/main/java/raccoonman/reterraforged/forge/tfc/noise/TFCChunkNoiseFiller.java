@@ -33,6 +33,7 @@ import java.util.function.Supplier;
 public class TFCChunkNoiseFiller extends ChunkNoiseFiller {
     protected final ChunkNoiseSamplingSettings settings;
 
+    protected final ProtoChunk chunk;
     private final Flow[] riverFlows; // 5 x 5 quart position sampled, pre-interpolated river flows. Not null.
     protected final int chunkMinX, chunkMinZ; // min block positions for the chunk
     private final int[] surfaceHeight; // 16x16, block pos resolution
@@ -45,6 +46,8 @@ public class TFCChunkNoiseFiller extends ChunkNoiseFiller {
 
     public TFCChunkNoiseFiller(ProtoChunk chunk, NoiseChunk interpolator, Object2DoubleMap<BiomeExtension>[] sampledBiomeWeights, BiomeSourceExtension biomeSource, Map<BiomeExtension, BiomeNoiseSampler> biomeNoiseSamplers, Map<RiverBlendType, RiverNoiseSampler> riverNoiseSamplers, Noise2D shoreSampler, NoiseSampler sampler, ChunkBaseBlockSource baseBlockSource, ChunkNoiseSamplingSettings settings, int seaLevel, Beardifier beardifier) {
         super(chunk, sampledBiomeWeights, biomeSource, biomeNoiseSamplers, riverNoiseSamplers, shoreSampler, sampler, baseBlockSource, null, seaLevel, beardifier);
+
+        this.chunk = chunk;
 
         this.settings = settings;
         this.chunkMinX = chunk.getPos().getMinBlockX();
@@ -138,7 +141,8 @@ public class TFCChunkNoiseFiller extends ChunkNoiseFiller {
 
         for(int cellY = maxFilledCellY; cellY >= 0; --cellY) {
             this.interpolator.selectCellYZ(cellY, this.lastCellZ);
-            this.interpolator.updateForXZ(this.cellDeltaX, this.cellDeltaZ);
+            this.interpolator.updateForX(cellX, this.cellDeltaX);
+            this.interpolator.updateForZ(cellZ, this.cellDeltaZ);
 
             for(int localCellY = this.settings.cellHeight() - 1; localCellY >= 0; --localCellY) {
                 int y = (this.settings.firstCellY() + cellY) * this.settings.cellHeight() + localCellY;
@@ -151,7 +155,7 @@ public class TFCChunkNoiseFiller extends ChunkNoiseFiller {
                     }
 
                     double cellDeltaY = (double)localCellY / (double)this.settings.cellHeight();
-                    this.interpolator.updateForY(cellDeltaY);
+                    this.interpolator.updateForY(cellY, cellDeltaY);
                     double noise = this.calculateNoiseAtHeight(y, (double)heightNoiseValue);
                     BlockState state = this.calculateBlockStateAtNoise(y, noise);
                     FluidState fluid = state.getFluidState();
