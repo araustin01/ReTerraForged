@@ -253,7 +253,7 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
             if (decorationIndex < orderedFeatures.size()) {
                 final IntSet featureIndices = new IntArraySet();
                 for (Biome biome : allAdjacentBiomes) {
-                    if(TFCBiomes.getExtension(level, biome) == null)
+                    if (TFCBiomes.getExtension(level, biome) == null)
                         continue;
 
                     List<HolderSet<PlacedFeature>> featuresPerBiome = TFCBiomes.getExtensionOrThrow(level, biome).getFlattenedFeatures(biome);
@@ -330,27 +330,35 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
         final RandomSource random = new XoroshiroRandomSource(chunkPos.x * 1842639486192314L, chunkPos.z * 579238196380231L);
         final ChunkData chunkData = chunkDataProvider.get(chunk);
 
-        final Object2DoubleMap<BiomeExtension>[] biomeWeights = ChunkBiomeSampler.sampleBiomes(chunkPos, this::sampleBiomeNoRiver, BiomeExtension::biomeBlendType);
-//        final ChunkBaseBlockSource baseBlockSource = createBaseBlockSourceForChunk(chunk);
-//        final ChunkNoiseFiller filler = new ChunkNoiseFiller((ProtoChunk) chunk, biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, null, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
+        // Lock sections
+        final Set<LevelChunkSection> sections = new HashSet<>();
+        for (LevelChunkSection section : chunk.getSections()) {
+            section.acquire();
+            sections.add(section);
+        }
 
-        NoiseSettings noiseSettings = this.noiseSettings.value().noiseSettings().clampToHeightAccessor(chunk);
+
+        final Object2DoubleMap<BiomeExtension>[] biomeWeights = ChunkBiomeSampler.sampleBiomes(chunkPos, this::sampleBiomeNoRiver, BiomeExtension::biomeBlendType);
+        final ChunkBaseBlockSource baseBlockSource = createBaseBlockSourceForChunk(chunk);
+//        final ChunkNoiseFiller filler = new ChunkNoiseFiller((ProtoChunk) chunk, biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, null, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
+//        NoiseSettings noiseSettings = this.noiseSettings.value().noiseSettings().clampToHeightAccessor(chunk);
         final TFCChunkNoiseFiller filler = new TFCChunkNoiseFiller((ProtoChunk) chunk, chunk.getOrCreateNoiseChunk((arg4x) -> {
             return this.createNoiseChunk(arg4x, structureFeatureManager, oldTerrainBlender, rawState);
         }), biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, null, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
 
-        CompletableFuture<ChunkAccess> noiseGen = super.fillFromNoise(mainExecutor, oldTerrainBlender, rawState, structureFeatureManager, chunk);
-
         return CompletableFuture.supplyAsync(() -> {
-//            filler.sampleAquiferSurfaceHeight(this::sampleBiomeNoRiver);
+            filler.sampleAquiferSurfaceHeight(this::sampleBiomeNoRiver);
             chunkData.generateFull(filler.surfaceHeight(), filler.aquifer().surfaceHeights());
-//            chunkData.getRockData().useCache(chunkPos);
+            chunkData.getRockData().useCache(chunkPos);
             filler.fillFromNoise();
 
-//            aquiferCache.set(chunkPos.x, chunkPos.z, filler.aquifer());
+            aquiferCache.set(chunkPos.x, chunkPos.z, filler.aquifer());
 
             return chunk;
-        }, Util.backgroundExecutor()).thenCompose(c -> noiseGen).whenCompleteAsync((ret, err) -> {
+        }, Util.backgroundExecutor()).whenCompleteAsync((ret, err) -> {
+            // Unlock before surfaces are built, as they use locks directly
+            sections.forEach(LevelChunkSection::release);
+
             surfaceManager.buildSurface(actualLevel, chunk, rockLayerSettings(), chunkData, filler.localBiomes(), filler.localBiomesNoRivers(), filler.localBiomeWeights(), filler.createSlopeMap(), random, getSeaLevel(), settings.minY());
         }, mainExecutor);
     }
