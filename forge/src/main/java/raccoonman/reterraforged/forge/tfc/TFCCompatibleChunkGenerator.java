@@ -160,6 +160,7 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
     @Override
     @SuppressWarnings("ConstantConditions") // this.chunkDataProvider is null
     public void initRandomState(ChunkMap chunkMap, ServerLevel level) {
+        RTFCommon.LOGGER.info("TFCCompatibleChunkGenerator#initRandomState");
         if (chunkDataProvider != null) {
             // Already initialized, so (1) duplicate the chunk generator, only for this chunk map, then (2) re-initialize random state
             final TFCChunkGenerator copy = copy();
@@ -337,14 +338,13 @@ public class TFCCompatibleChunkGenerator extends NoiseBasedChunkGenerator implem
             sections.add(section);
         }
 
-
         final Object2DoubleMap<BiomeExtension>[] biomeWeights = ChunkBiomeSampler.sampleBiomes(chunkPos, this::sampleBiomeNoRiver, BiomeExtension::biomeBlendType);
         final ChunkBaseBlockSource baseBlockSource = createBaseBlockSourceForChunk(chunk);
 //        final ChunkNoiseFiller filler = new ChunkNoiseFiller((ProtoChunk) chunk, biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, null, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
 //        NoiseSettings noiseSettings = this.noiseSettings.value().noiseSettings().clampToHeightAccessor(chunk);
         final TFCChunkNoiseFiller filler = new TFCChunkNoiseFiller((ProtoChunk) chunk, chunk.getOrCreateNoiseChunk((arg4x) -> {
             return this.createNoiseChunk(arg4x, structureFeatureManager, oldTerrainBlender, rawState);
-        }), biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, null, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
+        }), biomeWeights, customBiomeSource, createBiomeSamplersForChunk(chunk), createRiverSamplersForChunk(), createShoreSamplerForChunk(), noiseSampler, baseBlockSource, settings, getSeaLevel(), Beardifier.forStructuresInChunk(structureFeatureManager, chunkPos));
 
         return CompletableFuture.supplyAsync(() -> {
             filler.sampleAquiferSurfaceHeight(this::sampleBiomeNoRiver);

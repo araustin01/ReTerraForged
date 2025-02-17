@@ -28,6 +28,7 @@ import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.Nullable;
+import raccoonman.reterraforged.RTFCommon;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -94,7 +95,7 @@ public class TFCChunkNoiseFiller extends ChunkNoiseFiller {
     private int lastCellZ; // Last cell Z, needed due to a quick in noise interpolator
 
     public TFCChunkNoiseFiller(ProtoChunk chunk, NoiseChunk interpolator, Object2DoubleMap<BiomeExtension>[] sampledBiomeWeights, BiomeSourceExtension biomeSource, Map<BiomeExtension, BiomeNoiseSampler> biomeNoiseSamplers, Map<RiverBlendType, RiverNoiseSampler> riverNoiseSamplers, Noise2D shoreSampler, NoiseSampler sampler, ChunkBaseBlockSource baseBlockSource, ChunkNoiseSamplingSettings settings, int seaLevel, Beardifier beardifier) {
-        super(chunk, sampledBiomeWeights, biomeSource, biomeNoiseSamplers, riverNoiseSamplers, shoreSampler, sampler, baseBlockSource, null, seaLevel, beardifier);
+        super(chunk, sampledBiomeWeights, biomeSource, biomeNoiseSamplers, riverNoiseSamplers, shoreSampler, sampler, baseBlockSource, settings, seaLevel, beardifier);
 
         this.chunk = chunk;
         this.chunkMinX = chunk.getPos().getMinBlockX();
@@ -224,8 +225,11 @@ public class TFCChunkNoiseFiller extends ChunkNoiseFiller {
     private void fillColumn(BlockPos.MutableBlockPos cursor, int cellX, int cellZ) {
         boolean debugFillColumn = false;
 
-        this.prepareColumnBiomeWeights();
-        this.sampleColumnHeightAndBiome(this.biomeWeights1, true);
+        super.prepareColumnBiomeWeights();
+        super.biomeWeights1.forEach((k,v) -> {
+            RTFCommon.LOGGER.info("biomeWeights1[" + k.key() + "] = " + v);
+        });
+        super.sampleColumnHeightAndBiome(super.biomeWeights1, true);
 
         int localIndex = this.localX + 16 * this.localZ;
         int heightNoiseValue = this.surfaceHeight[localIndex];

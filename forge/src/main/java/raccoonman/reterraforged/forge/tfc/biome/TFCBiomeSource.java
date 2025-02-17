@@ -78,6 +78,7 @@ public class TFCBiomeSource extends BiomeSource implements BiomeSourceExtension 
     @Override
     public void initRandomState(RegionGenerator regionGenerator, ConcurrentArea<BiomeExtension> biomeLayer)
     {
+        RTFCommon.LOGGER.info("TFCBiomeSource#initRandomState");
         this.regionGenerator = regionGenerator;
         this.biomeLayer = biomeLayer;
     }
